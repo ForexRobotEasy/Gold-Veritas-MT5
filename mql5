@@ -1,0 +1,116 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                                       Gold Veritas MT5|
+//|                       Copyright 2021, Forex Robot Easy Team       |
+//|                                   https://forexroboteasy.com      |
+//+------------------------------------------------------------------+
+
+//---- input parameters
+input string Pair1 = 'XAUUSD';
+input string Pair2 = 'XAUJPY';
+input string Pair3 = 'XAUAUD';
+input string Pair4 = 'XAUEUR';
+input int Slippage = 5;
+input int Lifespan = 18000; // 5 hours in seconds
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   // Add initialization code here
+   return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   // Add deinitialization code here
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   // Add main trading logic here
+   OpenPendingOrders();
+}
+
+//+------------------------------------------------------------------+
+//| Open pending orders for all currency pairs                       |
+//+------------------------------------------------------------------+
+void OpenPendingOrders()
+{
+   // Open pending orders for Pair1
+   OpenPendingOrder(Pair1);
+   
+   // Open pending orders for Pair2
+   OpenPendingOrder(Pair2);
+   
+   // Open pending orders for Pair3
+   OpenPendingOrder(Pair3);
+   
+   // Open pending orders for Pair4
+   OpenPendingOrder(Pair4);
+}
+
+//+------------------------------------------------------------------+
+//| Open pending order for a specific currency pair                   |
+//+------------------------------------------------------------------+
+void OpenPendingOrder(string currencyPair)
+{
+   double price = MarketInfo(currencyPair, MODE_BID);
+   double sl = price - 100;
+   double tp = price + 100;
+   
+   int ticket = OrderSend(currencyPair, OP_BUYSTOP, 0.01, price + 10 * Point, 0, sl, tp, 'BuyStop', 0, 0, Green);
+   if(ticket > 0)
+   {
+      Print('BuyStop order opened for ', currencyPair, '. Ticket: ', ticket);
+   }
+   else
+   {
+      Print('Error opening BuyStop order for ', currencyPair, '. Error code: ', GetLastError());
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Close all transactions within the specified lifespan             |
+//+------------------------------------------------------------------+
+void CloseTransactions()
+{
+   int total = OrdersTotal();
+   for(int i=total-1; i>=0; i--)
+   {
+      if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         if(OrderSymbol() == Pair1 || OrderSymbol() == Pair2 || OrderSymbol() == Pair3 || OrderSymbol() == Pair4)
+         {
+            int lifespan = TimeCurrent() - OrderOpenTime();
+            if(lifespan > Lifespan)
+            {
+               bool result = OrderClose(OrderTicket(), OrderLots(), OrderClosePrice(), Slippage, Red);
+               if(result)
+               {
+                  Print('Order closed. Ticket: ', OrderTicket());
+               }
+               else
+               {
+                  Print('Error closing order. Ticket: ', OrderTicket(), '. Error code: ', GetLastError());
+               }
+            }
+         }
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Event handler for trade events                                    |
+//+------------------------------------------------------------------+
+void OnTrade()
+{
+   CloseTransactions();
+}
